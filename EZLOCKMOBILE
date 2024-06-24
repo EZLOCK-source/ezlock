@@ -120,6 +120,7 @@ local lockButton = Instance.new("TextButton")
 lockButton.Size = UDim2.new(0, 100, 0, 50)
 lockButton.Position = UDim2.new(0.5, -50, 0.9, -25)
 lockButton.Text = "Lock"
+lockButton.ResetOnSpawn = false
 lockButton.Parent = screenGui
 
 lockButton.MouseButton1Click:Connect(function()
