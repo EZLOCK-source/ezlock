@@ -6,13 +6,23 @@ local Camera = workspace.CurrentCamera
 
 -- Retrieve configuration
 local config = getgenv().EZLockConfig
-local camLocked = false 
+local camLocked = false
 local targetPlayer = nil
 local cameraConnection
 
+local function getAdjustedPredictionStrength()
+    local ping = LocalPlayer:GetNetworkPing()
+    -- Convert ping to milliseconds for easier calculation
+    local pingMs = ping * 1000
+    -- Adjust the prediction strength based on ping
+    local adjustedStrength = config.Prediction.Strength * (1 + (pingMs / 200))
+    return adjustedStrength
+end
+
 local function predictPosition(part)
     local currentVelocity = part.Velocity
-    local predictedPosition = part.Position + (currentVelocity * config.Prediction.Strength)
+    local predictionStrength = getAdjustedPredictionStrength()
+    local predictedPosition = part.Position + (currentVelocity * predictionStrength)
     return predictedPosition
 end
 
