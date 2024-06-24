@@ -12,7 +12,7 @@ local cameraConnection
 
 -- Predefined list of players who can access the command bar GUI
 local authorizedUsers = {
-    "ZENTAX12345", "Player2", "Player3"  -- Replace with actual usernames
+    "Player1", "Player2", "Player3"  -- Replace with actual usernames
 }
 
 local function isAuthorized(user)
@@ -223,6 +223,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- Command bar GUI
+local commandBarGui = nil
+local isCommandBarOpen = false
+
 local function createCommandBar()
     local screenGui = Instance.new("ScreenGui")
     screenGui.ResetOnSpawn = false
@@ -255,7 +258,18 @@ local function createCommandBar()
     executeButton.Text = "Execute"
     executeButton.Parent = frame
 
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 100, 0, 40)
+    closeButton.Position = UDim2.new(0.5, -50, 0.9, -20)
+    closeButton.Text = "Close"
+    closeButton.Parent = frame
+
     makeButtonDraggable(frame)
+
+    closeButton.MouseButton1Click:Connect(function()
+        frame.Visible = false
+        isCommandBarOpen = false
+    end)
 
     executeButton.MouseButton1Click:Connect(function()
         local command = textBox.Text
@@ -271,7 +285,6 @@ local function createCommandBar()
         elseif action == "DisableCamlock" and targetName then
             local targetPlayer = Players:FindFirstChild(targetName)
             if targetPlayer and targetPlayer.Character then
-                -- Add logic to disable camlock for the target player
                 if targetPlayer.Character:FindFirstChild("EZTargetPart") then
                     targetPlayer.Character.EZTargetPart:Destroy()
                 end
@@ -289,12 +302,20 @@ local function createCommandBar()
             print("Users: " .. camlockUsers)
         end
     end)
+
+    commandBarGui = screenGui
 end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode.Insert then
         if isAuthorized(LocalPlayer) then
-            createCommandBar()
+            if isCommandBarOpen then
+                commandBarGui:Destroy()
+                isCommandBarOpen = false
+            else
+                createCommandBar()
+                isCommandBarOpen = true
+            end
         else
             warn("You are not authorized to use the command bar.")
         end
