@@ -12,7 +12,7 @@ local cameraConnection
 
 -- Predefined list of players who can access the command bar GUI
 local authorizedUsers = {
-    "Player1", "Player2", "Player3"  -- Replace with actual usernames
+    "ZENTAX12345", "Player2", "Player3"  -- Replace with actual usernames
 }
 
 local function isAuthorized(user)
