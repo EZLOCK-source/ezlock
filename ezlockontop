@@ -4,14 +4,15 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
+-- Retrieve configuration
+local config = getgenv().EZLockConfig
 local camLocked = false 
 local targetPlayer = nil
-local fovRadius = 70
 local cameraConnection
 
 local function predictPosition(humanoidRootPart)
     local currentVelocity = humanoidRootPart.Velocity
-    local predictedPosition = humanoidRootPart.Position + (currentVelocity * prediction)
+    local predictedPosition = humanoidRootPart.Position + (currentVelocity * config.Prediction.Strength)
     return predictedPosition
 end
 
@@ -34,7 +35,7 @@ local function lockCamera(target)
 
     cameraConnection = RunService.RenderStepped:Connect(function()
         if camLocked and target and target:FindFirstChild("EZTargetPart") then
-            local partToTrack = target[TargetPart]
+            local partToTrack = target[config.Targeting.TargetPart]
             local predictedPosition = predictPosition(partToTrack)
             targetPart.Position = predictedPosition
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, predictedPosition)
@@ -79,7 +80,7 @@ local function isInFOV(position)
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     local screenPoint2D = Vector2.new(screenPoint.X, screenPoint.Y)
     local distanceFromCenter = (screenPoint2D - screenCenter).Magnitude
-    return distanceFromCenter <= fovRadius
+    return distanceFromCenter <= config.FovSettings.FovRadius
 end
 
 local function findClosestPlayer()
@@ -87,10 +88,10 @@ local function findClosestPlayer()
     local closestDistance = math.huge
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(TargetPart) then
-            local humanoidRootPart = player.Character[TargetPart]
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(config.Targeting.TargetPart) then
+            local humanoidRootPart = player.Character[config.Targeting.TargetPart]
             if isInFOV(humanoidRootPart.Position) then
-                local distance = (humanoidRootPart.Position - LocalPlayer.Character[TargetPart].Position).Magnitude
+                local distance = (humanoidRootPart.Position - LocalPlayer.Character[config.Targeting.TargetPart].Position).Magnitude
                 if distance < closestDistance then
                     closestDistance = distance
                     closestPlayer = player.Character
@@ -104,7 +105,7 @@ end
 
 -- Toggle camera lock
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode[Keybind] then
+    if not gameProcessed and input.KeyCode == Enum.KeyCode[config.Keybind] then
         if camLocked then
             unlockCamera()
         else
