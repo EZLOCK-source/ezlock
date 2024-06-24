@@ -121,29 +121,84 @@ local function findClosestPlayer()
     return closestPlayer
 end
 
--- Create a ScreenGui for mobile buttons
+-- Create a ScreenGui for buttons
 local screenGui = Instance.new("ScreenGui")
 screenGui.ResetOnSpawn = false  -- Ensure the ScreenGui persists through respawns
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Create lock button
-local lockButton = Instance.new("TextButton")
-lockButton.Size = UDim2.new(0, 100, 0, 50)
-lockButton.Position = UDim2.new(0.5, -50, 0.9, -25)
-lockButton.Text = "Lock"
-lockButton.Parent = screenGui
+local function makeButtonDraggable(button)
+    local dragging = false
+    local dragInput, mousePos, framePos
 
-lockButton.MouseButton1Click:Connect(function()
-    if camLocked then
-        unlockCamera()
-    else
-        targetPlayer = findClosestPlayer()
-        if targetPlayer then
-            camLocked = true
-            lockCamera(targetPlayer)
-        end
+    local function update(input)
+        local delta = input.Position - mousePos
+        button.Position = UDim2.new(
+            framePos.X.Scale,
+            framePos.X.Offset + delta.X,
+            framePos.Y.Scale,
+            framePos.Y.Offset + delta.Y
+        )
     end
-end)
+
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            mousePos = input.Position
+            framePos = button.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    button.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- Create lock button only for mobile, tablet, iPad devices
+if UserInputService.TouchEnabled then
+    local lockButton = Instance.new("TextButton")
+    lockButton.Size = UDim2.new(0, 100, 0, 50)
+    lockButton.Position = UDim2.new(0.05, 0, 0.5, -25)  -- Middle left for mobile
+    lockButton.Text = "Lock"
+    lockButton.Parent = screenGui
+
+    -- UI Enhancements
+    local uiCorner = Instance.new("UICorner")
+    uiCorner.CornerRadius = UDim.new(0, 12)
+    uiCorner.Parent = lockButton
+
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Color = Color3.new(1, 1, 1)
+    uiStroke.Thickness = 2
+    uiStroke.Parent = lockButton
+
+    makeButtonDraggable(lockButton)
+
+    lockButton.MouseButton1Click:Connect(function()
+        if camLocked then
+            unlockCamera()
+        else
+            targetPlayer = findClosestPlayer()
+            if targetPlayer then
+                camLocked = true
+                lockCamera(targetPlayer)
+            end
+        end
+    end)
+end
 
 -- Toggle camera lock using keyboard input
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
