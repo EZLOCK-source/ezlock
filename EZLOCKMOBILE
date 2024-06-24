@@ -148,29 +148,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
-
--- Configuration using getgenv()
-getgenv().EZLockConfig = {
-    Enabled = true,  -- Enable the EZLock script
-    Keybind = "V",  -- Keybind to toggle the lock
-    Prediction = {
-        Strength = 0.1,  -- Prediction strength adjustment
-    },
-    Targeting = {
-        TargetPart = "HumanoidRootPart",  -- Target the HumanoidRootPart
-        AirPart = "LowerTorso",  -- Target part when the player jumps
-    }
-}
-
--- Load the rest of the script from GitHub
-local githubURL = "https://raw.githubusercontent.com/EZLOCK-source/ezlock/main/EZLOCK"
-
-local success, err = pcall(function()
-    loadstring(game:HttpGet(githubURL, true))()
-end)
-
-if not success then
-    warn("Failed to load the remote script: " .. err)
-else
-    print("EZLOCK is now loaded")
-end
