@@ -9,6 +9,7 @@ local config = getgenv().EZLockConfig
 local camLocked = false
 local targetPlayer = nil
 local cameraConnection
+local previousPrediction = nil
 
 local function getAdjustedPredictionStrength()
     local ping = LocalPlayer:GetNetworkPing()
@@ -37,6 +38,21 @@ local function createTargetPart(character)
     return targetPart
 end
 
+local function adjustPrediction(predictedPosition)
+    if previousPrediction then
+        local movementDirection = predictedPosition - previousPrediction
+        local playerMovement = LocalPlayer.Character.HumanoidRootPart.Velocity
+
+        -- Detect if the prediction is being flown away
+        if movementDirection.Magnitude > playerMovement.Magnitude then
+            -- Adjust the prediction to correct its trajectory
+            predictedPosition = predictedPosition - (movementDirection.Unit * playerMovement.Magnitude * 0.5)
+        end
+    end
+    previousPrediction = predictedPosition
+    return predictedPosition
+end
+
 local function lockCamera(target)
     local targetPart = target:FindFirstChild("EZTargetPart")
     if not targetPart then
@@ -54,6 +70,7 @@ local function lockCamera(target)
             
             if partToTrack then
                 local predictedPosition = predictPosition(partToTrack)
+                predictedPosition = adjustPrediction(predictedPosition)
                 targetPart.Position = predictedPosition
 
                 -- Interpolate the camera position with a higher speed for responsiveness
@@ -95,6 +112,7 @@ local function unlockCamera()
     end
     camLocked = false
     targetPlayer = nil
+    previousPrediction = nil
 end
 
 local function isInFOV(position)
