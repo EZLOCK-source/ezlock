@@ -14,7 +14,7 @@ local function getAdjustedPredictionStrength()
     local ping = LocalPlayer:GetNetworkPing()
     -- Convert ping to milliseconds for easier calculation
     local pingMs = ping * 1000
-    -- Use a more nuanced approach to adjust the prediction strength based on ping
+    -- Adjust the prediction strength based on ping
     local baseStrength = config.Prediction.Strength
     local adjustedStrength = baseStrength * (1 + (math.log(pingMs + 1) / 5))
     return adjustedStrength
@@ -61,7 +61,7 @@ local function lockCamera(target)
                 local predictedPosition = predictPosition(partToTrack)
                 targetPart.Position = predictedPosition
                 local cameraPosition = Camera.CFrame.Position
-                local smoothPosition = lerp(cameraPosition, predictedPosition, 2)  -- Adjust the 0.6 to control smoothness
+                local smoothPosition = lerp(cameraPosition, predictedPosition, 0.1)  -- Adjust the 0.1 to control smoothness
                 Camera.CFrame = CFrame.new(cameraPosition, smoothPosition)
 
                 -- Create a 3D box
@@ -69,7 +69,7 @@ local function lockCamera(target)
                     local box = Instance.new("Part")
                     box.Name = "TargetIndicator"
                     box.Size = Vector3.new(4, 5, 4)
-                    box.Transparency = 1
+                    box.Transparency = 0.5
                     box.CFrame = partToTrack.CFrame
                     box.Anchored = true
                     box.CanCollide = false
@@ -189,7 +189,7 @@ if UserInputService.TouchEnabled then
 
     local uiStroke = Instance.new("UIStroke")
     uiStroke.Color = Color3.new(1, 1, 1)
-    uiStroke.Thickness = 1
+    uiStroke.Thickness = 2
     uiStroke.Parent = lockButton
 
     makeButtonDraggable(lockButton)
