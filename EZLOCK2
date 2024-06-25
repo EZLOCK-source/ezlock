@@ -56,10 +56,10 @@ local function lockCamera(target)
                 local predictedPosition = predictPosition(partToTrack)
                 targetPart.Position = predictedPosition
 
-                -- Use lerp to smoothly interpolate the camera's CFrame
+                -- Interpolate the camera position with a higher speed for responsiveness
                 local currentCameraCFrame = Camera.CFrame
                 local targetCFrame = CFrame.new(Camera.CFrame.Position, predictedPosition)
-                local lerpSpeed = 0.1 -- Adjust this value to get the desired smoothness
+                local lerpSpeed = 0.3 -- Increase this value for more responsiveness
                 Camera.CFrame = currentCameraCFrame:Lerp(targetCFrame, lerpSpeed)
 
                 -- Create a 3D box
