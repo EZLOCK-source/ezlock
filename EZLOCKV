@@ -61,7 +61,7 @@ local function lockCamera(target)
                 local predictedPosition = predictPosition(partToTrack)
                 targetPart.Position = predictedPosition
                 local cameraPosition = Camera.CFrame.Position
-                local smoothPosition = lerp(cameraPosition, predictedPosition, 0.2)  -- Adjust the 0.2 to control smoothness
+                local smoothPosition = lerp(cameraPosition, predictedPosition, 0.6)  -- Adjust the 0.6 to control smoothness
                 Camera.CFrame = CFrame.new(cameraPosition, smoothPosition)
 
                 -- Create a 3D box
