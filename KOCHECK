@@ -4,6 +4,12 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
+-- Ensure EZLockConfig is available
+if not getgenv().EZLockConfig then
+    warn("EZLockConfig not found!")
+    return
+end
+
 -- Retrieve configuration
 local config = getgenv().EZLockConfig
 local camLocked = false
@@ -18,6 +24,10 @@ local function getAdjustedPredictionStrength()
 end
 
 local function predictPosition(part)
+    if not part then
+        warn("Part is nil in predictPosition")
+        return Vector3.new()
+    end
     local currentVelocity = part.Velocity
     local predictionStrength = getAdjustedPredictionStrength()
     local predictedPosition = part.Position + (currentVelocity * predictionStrength)
@@ -25,6 +35,10 @@ local function predictPosition(part)
 end
 
 local function createTargetPart(character)
+    if not character then
+        warn("Character is nil in createTargetPart")
+        return nil
+    end
     local targetPart = Instance.new("Part")
     targetPart.Name = "EZTargetPart"
     targetPart.Size = Vector3.new(1, 1, 1)
@@ -36,7 +50,7 @@ local function createTargetPart(character)
 end
 
 local function Death(player)
-    if player.Character and player.Character:FindFirstChild("BodyEffects") then
+    if player and player.Character and player.Character:FindFirstChild("BodyEffects") then
         local bodyEffects = player.Character.BodyEffects
         local ko = bodyEffects:FindFirstChild("K.O") or bodyEffects:FindFirstChild("KO")
         return ko and ko.Value
@@ -45,6 +59,10 @@ local function Death(player)
 end
 
 local function lockCamera(target)
+    if not target then
+        warn("Target is nil in lockCamera")
+        return
+    end
     local targetPart = target:FindFirstChild("EZTargetPart")
     if not targetPart then
         targetPart = createTargetPart(target)
@@ -132,8 +150,9 @@ local function findClosestPlayer()
     return closestPlayer
 end
 
+-- Create a ScreenGui for buttons
 local screenGui = Instance.new("ScreenGui")
-screenGui.ResetOnSpawn = false
+screenGui.ResetOnSpawn = false  -- Ensure the ScreenGui persists through respawns
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local function makeButtonDraggable(button)
@@ -177,13 +196,15 @@ local function makeButtonDraggable(button)
     end)
 end
 
+-- Create lock button only for mobile, tablet, iPad devices
 if UserInputService.TouchEnabled then
     local lockButton = Instance.new("TextButton")
     lockButton.Size = UDim2.new(0, 100, 0, 50)
-    lockButton.Position = UDim2.new(0.05, 0, 0.5, -25)
+    lockButton.Position = UDim2.new(0.05, 0, 0.5, -25)  -- Middle left for mobile
     lockButton.Text = "Lock"
     lockButton.Parent = screenGui
 
+    -- UI Enhancements
     local uiCorner = Instance.new("UICorner")
     uiCorner.CornerRadius = UDim.new(0, 12)
     uiCorner.Parent = lockButton
@@ -200,7 +221,7 @@ if UserInputService.TouchEnabled then
             unlockCamera()
         else
             targetPlayer = findClosestPlayer()
-            if targetPlayer and not Death(targetPlayer) then
+            if targetPlayer then
                 camLocked = true
                 lockCamera(targetPlayer)
             end
@@ -208,13 +229,14 @@ if UserInputService.TouchEnabled then
     end)
 end
 
+-- Toggle camera lock using keyboard input
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode[config.Keybind] then
         if camLocked then
             unlockCamera()
         else
             targetPlayer = findClosestPlayer()
-            if targetPlayer and not Death(targetPlayer) then
+            if targetPlayer then
                 camLocked = true
                 lockCamera(targetPlayer)
             end
