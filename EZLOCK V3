@@ -70,6 +70,9 @@ local function lockCamera(target)
         tween.Completed:Wait()
     end
 
+    -- Wait 1 second before removing the smoothness
+    wait(1)
+
     cameraConnection = RunService.RenderStepped:Connect(function()
         if camLocked and target and target:FindFirstChild("EZTargetPart") then
             local partToTrack
@@ -244,5 +247,5 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 lockCamera(targetPlayer)
             end
         end
-    end
+    end)
 end)
