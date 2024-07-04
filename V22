@@ -14,8 +14,8 @@ local cameraConnection
 local function getAdjustedPredictionStrength()
     local ping = LocalPlayer:GetNetworkPing()
     local pingMs = ping * 1000
-    local fps = 1 / RunService.RenderStepped:Wait()
-    local adjustedStrength = config.Prediction.Strength * (1 + (pingMs / 100) + (60 / fps))
+    local fps = workspace:GetRealPhysicsFPS()
+    local adjustedStrength = config.Prediction.Strength * (1 + (pingMs / 1000) + (1 / fps))
     return adjustedStrength
 end
 
@@ -23,12 +23,12 @@ local function predictPosition(part)
     local currentVelocity = part.Velocity
     local predictionStrength = getAdjustedPredictionStrength()
     local predictedPosition = part.Position + (currentVelocity * predictionStrength)
-    
+
     if part:IsA("BasePart") and part:FindFirstChild("BodyVelocity") then
         local acceleration = part.BodyVelocity.Velocity - currentVelocity
         predictedPosition = predictedPosition + (0.5 * acceleration * predictionStrength^2)
     end
-    
+
     return predictedPosition
 end
 
@@ -57,7 +57,7 @@ local function lockCamera(target)
             else
                 partToTrack = target:FindFirstChild(config.Targeting.TargetPart)
             end
-            
+
             if partToTrack then
                 local predictedPosition = predictPosition(partToTrack)
                 targetPart.Position = predictedPosition
