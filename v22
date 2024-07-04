@@ -10,8 +10,6 @@ local config = getgenv().EZLockConfig
 local camLocked = false
 local targetPlayer = nil
 local cameraConnection
-local buttonVisible = false
-local Authorized = {"ZENTAX12345", "User2"}
 
 local function getAdjustedPredictionStrength()
     local ping = LocalPlayer:GetNetworkPing()
@@ -203,7 +201,9 @@ local function makeButtonDraggable(button)
     end)
 end
 
--- Create lock button only for mobile, tablet, iPad devices or authorized PC users
+-- Create lock button only for mobile, tablet, iPad devices
+local Authorized = {"ZENTAX12345", "User1"}
+
 local lockButton = Instance.new("TextButton")
 lockButton.Size = UDim2.new(0, 175, 0, 55)
 lockButton.Position = UDim2.new(0.05, 0, 0.5, -25)
@@ -211,53 +211,43 @@ lockButton.Text = "Lock"
 lockButton.TextSize = 27
 lockButton.BackgroundColor3 = Color3.fromRGB(17, 17, 17)
 lockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-lockButton.Font = Enum.Font.Inconsolata
-lockButton.Visible = UserInputService.TouchEnabled
+lockButton.Font = Enum.Font.Code
 lockButton.Parent = screenGui
 
 local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.CornerRadius = UDim.new(0.4, 0)
 uiCorner.Parent = lockButton
 
 local uiStroke = Instance.new("UIStroke")
-uiStroke.Color = Color3.new(1, 1, 1)
-uiStroke.Thickness = 2
+uiStroke.Color = Color3.fromRGB(255, 255, 255)
+uiStroke.Thickness = 1.7
 uiStroke.Parent = lockButton
+
+-- Check device type
+local deviceType = UserInputService.TouchEnabled and not UserInputService.MouseEnabled and not UserInputService.KeyboardEnabled
+
+-- Show button if it's a mobile device or an authorized user on PC
+if deviceType or table.find(Authorized, LocalPlayer.Name) then
+    lockButton.Visible = true
+else
+    lockButton.Visible = false
+end
 
 makeButtonDraggable(lockButton)
 
 lockButton.MouseButton1Click:Connect(function()
     if camLocked then
         unlockCamera()
+        lockButton.Text = "Lock"
     else
-        targetPlayer = findClosestPlayer()
-        if targetPlayer then
-            camLocked = true
+        local closestPlayer = findClosestPlayer()
+        if closestPlayer then
+            targetPlayer = closestPlayer
             lockCamera(targetPlayer)
+            camLocked = true
+            lockButton.Text = "Unlock"
         end
     end
 end)
 
-if not UserInputService.TouchEnabled and table.find(Authorized, LocalPlayer.Name) then
-    lockButton.Visible = false
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == Enum.KeyCode.M then
-            buttonVisible = not buttonVisible
-            lockButton.Visible = buttonVisible
-        end
-    end)
-end
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode[config.Keybind] then
-        if camLocked then
-            unlockCamera()
-        else
-            targetPlayer = findClosestPlayer()
-            if targetPlayer then
-                camLocked = true
-                lockCamera(targetPlayer)
-            end
-        end
-    end
-end)
+print("EZLock loaded successfully.")
