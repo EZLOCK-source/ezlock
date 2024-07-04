@@ -202,7 +202,7 @@ local function makeButtonDraggable(button)
 end
 
 -- Create lock button only for mobile, tablet, iPad devices
-local Authorized = {"ZENTAX12345", "User1"}
+local Authorized = {"User1", "User2"}
 
 local lockButton = Instance.new("TextButton")
 lockButton.Size = UDim2.new(0, 175, 0, 55)
