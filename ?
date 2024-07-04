@@ -1,0 +1,273 @@
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Retrieve configuration
+local config = getgenv().EZLockConfig
+local camLocked = false
+local targetPlayer = nil
+local cameraConnection
+
+local function getAdjustedPredictionStrength()
+    local ping = LocalPlayer:GetNetworkPing()
+    local pingMs = ping * 1000
+    local fps = 1 / RunService.RenderStepped:Wait()
+    local adjustedStrength = config.Prediction.Strength * (1 + (pingMs / 100) + (60 / fps))
+    return adjustedStrength
+end
+
+local function predictPosition(part)
+    local currentVelocity = part.Velocity
+    local predictionStrength = getAdjustedPredictionStrength()
+    local predictedPosition = part.Position + (currentVelocity * predictionStrength)
+    
+    if part:IsA("BasePart") and part:FindFirstChild("BodyVelocity") then
+        local acceleration = part.BodyVelocity.Velocity - currentVelocity
+        predictedPosition = predictedPosition + (0.5 * acceleration * predictionStrength^2)
+    end
+    
+    return predictedPosition
+end
+
+local function createTargetPart(character)
+    local targetPart = Instance.new("Part")
+    targetPart.Name = "EZTargetPart"
+    targetPart.Size = Vector3.new(1, 1, 1)
+    targetPart.Transparency = 1
+    targetPart.CanCollide = false
+    targetPart.Anchored = true
+    targetPart.Parent = character
+    return targetPart
+end
+
+local function lockCamera(target)
+    local targetPart = target:FindFirstChild("EZTargetPart")
+    if not targetPart then
+        targetPart = createTargetPart(target)
+    end
+
+    cameraConnection = RunService.RenderStepped:Connect(function()
+        if camLocked and target and target:FindFirstChild("EZTargetPart") then
+            local partToTrack
+            if target.Humanoid.Jump then
+                partToTrack = target:FindFirstChild(config.Targeting.AirPart)
+            else
+                partToTrack = target:FindFirstChild(config.Targeting.TargetPart)
+            end
+            
+            if partToTrack then
+                local predictedPosition = predictPosition(partToTrack)
+                targetPart.Position = predictedPosition
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, predictedPosition)
+
+                if not target:FindFirstChild("TargetIndicator") then
+                    local box = Instance.new("Part")
+                    box.Name = "TargetIndicator"
+                    box.Size = Vector3.new(4, 5, 4)
+                    box.Transparency = 1
+                    box.CFrame = partToTrack.CFrame
+                    box.Anchored = true
+                    box.CanCollide = false
+                    box.Color = Color3.fromRGB(0, 255, 0)
+                    box.Parent = target
+                else
+                    local box = target:FindFirstChild("TargetIndicator")
+                    box.CFrame = partToTrack.CFrame
+                end
+            end
+        end
+    end)
+end
+
+local function unlockCamera()
+    if cameraConnection then
+        cameraConnection:Disconnect()
+        cameraConnection = nil
+    end
+    if targetPlayer and targetPlayer:FindFirstChild("TargetIndicator") then
+        targetPlayer.TargetIndicator:Destroy()
+    end
+    if targetPlayer and targetPlayer:FindFirstChild("EZTargetPart") then
+        targetPlayer.EZTargetPart:Destroy()
+    end
+    camLocked = false
+    targetPlayer = nil
+end
+
+local function isInFOV(position)
+    local screenPoint, onScreen = Camera:WorldToScreenPoint(position)
+    if not onScreen then return false end
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local screenPoint2D = Vector2.new(screenPoint.X, screenPoint.Y)
+    local distanceFromCenter = (screenPoint2D - screenCenter).Magnitude
+    return distanceFromCenter <= 70
+end
+
+local function findClosestPlayer()
+    local closestPlayer = nil
+    local closestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(config.Targeting.TargetPart) then
+            local partToTrack = player.Character:FindFirstChild(config.Targeting.TargetPart)
+            if isInFOV(partToTrack.Position) then
+                local distance = (partToTrack.Position - LocalPlayer.Character[config.Targeting.TargetPart].Position).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestPlayer = player.Character
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+-- Create a ScreenGui for buttons and intro text
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Intro Text
+local introText = Instance.new("TextLabel")
+introText.Text = "EZLOCK"
+introText.Font = Enum.Font.Fondamento
+introText.TextColor3 = Color3.fromRGB(101, 0, 152)
+introText.TextSize = 55
+introText.Size = UDim2.new(0, 300, 0, 100)
+introText.AnchorPoint = Vector2.new(0.5, 0.5)
+introText.Position = UDim2.new(0.5, 0, 0.5, 0)
+introText.BackgroundTransparency = 1
+introText.Parent = screenGui
+
+local introStroke = Instance.new("UIStroke")
+introStroke.Color = Color3.new(0, 0, 0)
+introStroke.Thickness = 1.8
+introStroke.Parent = introText
+
+local fadeIn = TweenService:Create(introText, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {TextTransparency = 0})
+local fadeOut = TweenService:Create(introText, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {TextTransparency = 1})
+
+fadeIn:Play()
+fadeIn.Completed:Connect(function()
+    wait(1.5)
+    fadeOut:Play()
+    fadeOut.Completed:Connect(function()
+        introText:Destroy()
+    end)
+end)
+
+local function makeButtonDraggable(button)
+    local dragging = false
+    local dragInput, mousePos, framePos
+
+    local function update(input)
+        local delta = input.Position - mousePos
+        button.Position = UDim2.new(
+            framePos.X.Scale,
+            framePos.X.Offset + delta.X,
+            framePos.Y.Scale,
+            framePos.Y.Offset + delta.Y
+        )
+    end
+
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            mousePos = input.Position
+            framePos = button.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    button.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- Create lock button only for mobile, tablet, iPad devices
+local lockButton = Instance.new("TextButton")
+lockButton.Size = UDim2.new(0, 175, 0, 55)
+lockButton.Position = UDim2.new(0.05, 0, 0.5, -25)
+lockButton.Text = "Lock"
+lockButton.TextSize = 27
+lockButton.BackgroundColor3 = Color3.fromRGB(17, 17, 17)
+lockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+lockButton.Font = Enum.Font.Code
+lockButton.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0.4, 0)
+uiCorner.Parent = lockButton
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(255, 255, 255)
+uiStroke.Thickness = 1.7
+uiStroke.Parent = lockButton
+
+-- Check device type
+local deviceType = UserInputService.TouchEnabled and not UserInputService.MouseEnabled and not UserInputService.KeyboardEnabled
+
+-- Show button if it's a mobile device
+if deviceType then
+    lockButton.Visible = true
+else
+    lockButton.Visible = false
+end
+
+makeButtonDraggable(lockButton)
+
+lockButton.MouseButton1Click:Connect(function()
+    if camLocked then
+        unlockCamera()
+        lockButton.Text = "Lock"
+    else
+        local closestPlayer = findClosestPlayer()
+        if closestPlayer then
+            targetPlayer = closestPlayer
+            lockCamera(targetPlayer)
+            camLocked = true
+            lockButton.Text = "Unlock"
+        end
+    end
+end)
+
+-- Toggle camera lock using keyboard input
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == config.General.LockKey then
+        if camLocked then
+            unlockCamera()
+        else
+            local closestPlayer = findClosestPlayer()
+            if closestPlayer then
+                targetPlayer = closestPlayer
+                lockCamera(targetPlayer)
+                camLocked = true
+            end
+        end
+    end
+end)
+
+local function onPlayerRemoved()
+    if targetPlayer and not targetPlayer.Parent then
+        unlockCamera()
+    end
+end
+
+Players.PlayerRemoving:Connect(onPlayerRemoved)
