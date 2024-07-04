@@ -1,3 +1,4 @@
+-- // 22 // --
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -19,7 +20,7 @@ local function getAdjustedPredictionStrength()
     -- Adjust the prediction strength based on ping and FPS
     local fps = 1 / RunService.RenderStepped:Wait()
     local adjustedStrength = config.Prediction.Strength * (1 + (pingMs / 200) + (60 / fps))
-    return adjustedStrength
+    return adjustedStrength * 1000000 -- Make it extremely strong
 end
 
 local function predictPosition(part)
@@ -152,6 +153,15 @@ local introStroke = Instance.new("UIStroke")
 introStroke.Color = Color3.new(0, 0, 0)
 introStroke.Thickness = 1.8
 introStroke.Parent = introText
+
+-- Center intro text for all devices
+local function centerIntroText()
+    local screenSize = Camera.ViewportSize
+    introText.Position = UDim2.new(0.5, -introText.Size.X.Offset / 2, 0.5, -introText.Size.Y.Offset / 2)
+end
+
+centerIntroText()
+Camera:GetPropertyChangedSignal("ViewportSize"):Connect(centerIntroText)
 
 -- Fade In and Out Animation
 local fadeIn = TweenService:Create(introText, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {TextTransparency = 0})
