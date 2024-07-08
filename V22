@@ -256,17 +256,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
-
--- Configuration
-getgenv().EZLockConfig = {
-    Enabled = true,  
-    Keybind = "V",  -- Keybind to toggle the lock
-    Prediction = {
-        Strength = 0.1,  -- BASE PREDICTION (DO NOT CHANGE)
-    },
-    Targeting = {
-        TargetPart = "HumanoidRootPart",  -- Target the HumanoidRootPart
-        AirPart = "LowerTorso",  -- Target part when the player jumps
-        RandomPartTarget = true,  -- Toggle for random part targeting every 2 seconds
-    }
-}
