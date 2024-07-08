@@ -10,6 +10,7 @@ local config = getgenv().EZLockConfig
 local camLocked = false
 local targetPlayer = nil
 local cameraConnection
+local randomPartTimer = 0
 
 local function getAdjustedPredictionStrength()
     local ping = LocalPlayer:GetNetworkPing()
@@ -49,8 +50,17 @@ local function lockCamera(target)
         targetPart = createTargetPart(target)
     end
 
-    cameraConnection = RunService.RenderStepped:Connect(function()
+    cameraConnection = RunService.RenderStepped:Connect(function(dt)
         if camLocked and target and target:FindFirstChild("EZTargetPart") then
+            randomPartTimer = randomPartTimer + dt
+            if randomPartTimer >= 2 then
+                randomPartTimer = 0
+                if config.Targeting.RandomPartTarget then
+                    local parts = {"Head", "Torso"}
+                    config.Targeting.TargetPart = parts[math.random(1, #parts)]
+                end
+            end
+
             local partToTrack
             if target.Humanoid.Jump then
                 partToTrack = target:FindFirstChild(config.Targeting.AirPart)
@@ -246,3 +256,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
+
+-- Configuration
+getgenv().EZLockConfig = {
+    Enabled = true,  
+    Keybind = "V",  -- Keybind to toggle the lock
+    Prediction = {
+        Strength = 0.1,  -- BASE PREDICTION (DO NOT CHANGE)
+    },
+    Targeting = {
+        TargetPart = "HumanoidRootPart",  -- Target the HumanoidRootPart
+        AirPart = "LowerTorso",  -- Target part when the player jumps
+        RandomPartTarget = true,  -- Toggle for random part targeting every 2 seconds
+    }
+}
